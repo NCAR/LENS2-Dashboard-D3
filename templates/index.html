@@ -49,6 +49,7 @@
     </div>
 
     <script>
+        // construct leaflet map object
         var map = new L.map('map', {
         center: [30,0], 
         minZoom: 1,
@@ -91,11 +92,11 @@
             chartArea.selectAll("*").remove();
             svg.selectAll(".label").remove();
 
-            let clickedCoords = e.latlng
+            // let clickedCoords = e.latlng
 
-            let projectedCoords = L.CRS.EPSG3857.project(e.latlng)
-            let latitude = projectedCoords.y;
-            let longitude = projectedCoords.x;
+            // let projectedCoords = L.CRS.EPSG3857.project(e.latlng)
+            // let latitude = projectedCoords.y;
+            // let longitude = projectedCoords.x;
 
             // send coordinates to backend
             const cmd = "../ts/?" + 
@@ -195,6 +196,7 @@
                     .y(function(d) { return (dataScale(d.TS)) })
                 )
             
+            // construct area to detect mouseover on chart
             let hoverArea = chartArea.append("rect")
                 .attr("class", "overlay")
                 .attr("width", chartWidth)
@@ -204,7 +206,7 @@
                 .on("mouseout", () => focus.style("display", "none"))
                 .on("mousemove", mousemove);
              
-            // add the dropline and hover tooltip
+            // add the dropline and hover tooltip components
             const focus = chartArea
                 .append("g")
                 .attr("class", "focus")
@@ -226,6 +228,7 @@
                  .attr("x2", 0)
                  .attr("y2", chartHeight +10);
             
+            // function for creating a moving tooltip visible on hover on the chart
             function mousemove() {
                 console.log("moved")
                 let bisectDate = d3.bisector((d) => d.year).left;
@@ -260,8 +263,8 @@
             // elevate plotted line above gridlines
             chartArea.raise()
 
+            // add circle indicating current year
             let selectedYearData = data.find(d => d.year === currentYear).TS
-            console.log(selectedYearData)
 
             chartArea.append("circle")
                      .attr("cx", timeScale(currentYear))
