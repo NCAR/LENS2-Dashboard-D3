@@ -1,0 +1,16 @@
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python>=3.10
+  - fastapi
+  - uvicorn
+  - xarray
+  - ca-certificates
+  - openssl
+  - pooch
+  - scipy
+  - netcdf4
+  - jinja2
+  - dask
+  - dask-jobqueue
