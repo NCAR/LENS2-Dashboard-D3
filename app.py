@@ -70,7 +70,7 @@ async def get_data(
 
     
 
-@app.get("/ts/")
+@app.get("/time-series/")
 async def ts(
     lat: float = 47.6, 
     lon: float = 122.3,
@@ -88,7 +88,7 @@ async def ts(
     response = StreamingResponse(
         iter([stream.getvalue()]),
         media_type="text/csv"
-    )
+    )  
     del data
 
     return response
