@@ -22,6 +22,7 @@
                 max-height: 100%;
             }
         </style>
+         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/site.css')}}">
         <script src="https://d3js.org/d3.v7.min.js"></script>
     </head>
 
@@ -68,20 +69,6 @@
             maxZoom: 6,
             opacity: 0.75
         }).addTo(map);
-
-        map.on('click', function(e) {
-            const cmd = "../ts/?" + 
-                "lat=" + JSON.stringify(e.latlng.lat) + "&" + 
-                "lon=" + JSON.stringify(e.latlng.lng) + "&" +
-                "var=" + document.getElementById("var_select").value + "&" +
-                "forcing_type=" + document.getElementById("forcing_type").value
-            console.log(cmd)
-                $.get(cmd,
-                function(res) {
-                    console.log(res);
-                }
-            )
-        })
         </script>
 
         <script>
@@ -111,22 +98,17 @@
             let longitude = projectedCoords.x;
 
             // send coordinates to backend
-                fetch('/time-series', {
-                    method: 'POST',
-                    body: JSON.stringify({ latitude, longitude }),
-                    headers: {
-                    'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    // call a function to process the received dataframe with d3.js and plot it
-                    data = JSON.parse(data.data)
-                    plotData(data, clickedCoords);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                });
+            const cmd = "../ts/?" + 
+                "lat=" + JSON.stringify(e.latlng.lat) + "&" + 
+                "lon=" + JSON.stringify(e.latlng.lng) + "&" +
+                "var=" + document.getElementById("var_select").value + "&" +
+                "forcing_type=" + document.getElementById("forcing_type").value
+            console.log(cmd)
+                $.get(cmd,
+                function(res) {
+                    console.log(res);
+                }
+            )
         });
 
         function plotData(data, clickedCoords) {
@@ -253,8 +235,6 @@
                 let d0 = data[i - 1];
                 let d1 = data[i];
                 let d = x0 - d0.year > d1.year - x0 ? d1 : d0;
-
-           
 
                 focus.attr("display", "block")
                 block.attr(
