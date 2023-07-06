@@ -106,13 +106,15 @@
             console.log(cmd)
                 $.get(cmd,
                 function(res) {
-                    console.log(res);
                     plotData(res, clickedCoords)
                 }
             )
         });
 
         function plotData(data, clickedCoords) {
+            console.log(data)
+          
+            data = data.data
             let selectedVar = document.getElementById('var_select').value
             let selectedForcing = document.getElementById('forcing_type').value
 
@@ -123,7 +125,7 @@
 
             // construct scales for the x-axis and y-axis based on data range
             const xDomain = d3.extent(data, d => d.time);
-            const yDomain = d3.extent(data, d => d.selectedVar)
+            const yDomain = d3.extent(data, d => d[selectedVar])
             const timeScale = d3.scaleLinear().domain(xDomain).range([0, chartWidth]);
             const dataScale = d3.scaleLinear().domain(yDomain).range([chartHeight, 0]);
 
@@ -175,7 +177,7 @@
                .style("font-size", "12px")
                .style("text-anchor", "middle")
                .style("fill", "white")
-               .text("Surface Temperature (C°)");
+               .text(selectedVar);
 
             // create x-axis label
             svg.append('text')
@@ -187,6 +189,10 @@
                 .style("fill", "white")
                 .text("Year");
 
+            console.log(selectedVar)
+            
+            console.log(data.map(d => d.time))
+            console.log(data.map(d => d[selectedVar]))
             // construct line
             chartArea.append("path")
                 .datum(data)
@@ -195,7 +201,7 @@
                 .attr("stroke-width", 2)
                 .attr("d", d3.line()
                     .x(function(d) { return (timeScale(d.time)) })
-                    .y(function(d) { return (dataScale(d.selectedVar)) })
+                    .y(function(d) { return (dataScale(d[selectedVar])) })
                 )
             
             // construct area to detect mouseover on chart
@@ -244,7 +250,7 @@
                 focus.attr("display", "block")
                 block.attr(
                 "transform",
-                `translate(${timeScale(d.time)}, ${dataScale(d.selectedVar)})`
+                `translate(${timeScale(d.time)}, ${dataScale(d[selectedVar])})`
                 );
                 dropLine.attr(
                 "transform",
@@ -253,20 +259,19 @@
 
                 focus.select(".tooltip").remove();
                 const tooltip = focus.append("text").attr("class", "tooltip");
-                tooltip.attr("x", 10).attr("y", 15).text(d.selectedVar.toFixed(3));
+                tooltip.attr("x", 10).attr("y", 15).text(d[selectedVar].toFixed(3));
 
                 tooltip.attr(
                 "transform",
-                `translate(${timeScale(d.time)}, ${dataScale(d.selectedVar)})`
+                `translate(${timeScale(d.time)}, ${dataScale(d[selectedVar])})`
                 );
-               
             }
             
             // elevate plotted line above gridlines
             chartArea.raise()
 
             // add circle indicating current year
-            let selectedYearData = data.find(d => d.time === currentYear).selectedVar
+            let selectedYearData = data.find(d => d.time === currentYear)[selectedVar]
 
             chartArea.append("circle")
                      .attr("cx", timeScale(currentYear))

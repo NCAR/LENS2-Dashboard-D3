@@ -88,7 +88,7 @@ async def ts(
     # send csv data. https://stackoverflow.com/a/61910803
     stream = io.StringIO()
     data = data[['time', var]]
-    data.to_json(stream, orient='index')
+    data.to_json(stream, orient='table')
     
     response = StreamingResponse(
         iter([stream.getvalue()]),
