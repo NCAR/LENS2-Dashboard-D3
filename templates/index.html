@@ -95,7 +95,7 @@
             svg.selectAll(".label").remove();
 
             // code used for unprojecting the data back into Web Mercator
-            // let clickedCoords = e.latlng
+            let clickedCoords = e.latlng
 
             // let projectedCoords = L.CRS.EPSG3857.project(e.latlng)
             // let latitude = projectedCoords.y;
@@ -111,6 +111,7 @@
                 $.get(cmd,
                 function(res) {
                     console.log(res);
+                    plotData(res, clickedCoords)
                 }
             )
         });
@@ -118,12 +119,12 @@
         function plotData(data, clickedCoords) {
             // ensure data is of type Number
             data.forEach( d => {
-                d['year'] = Number( d['year']);
-                d['TS'] = Number(d[selectedVar]);
+                d['time'] = Number( d['time']);
+                d[selectedVar] = Number(d[selectedVar]);
             });
 
             // construct scales for the x-axis and y-axis based on data range
-            const xDomain = d3.extent(data, d => d.year);
+            const xDomain = d3.extent(data, d => d.time);
             const yDomain = d3.extent(data, d => d.selectedVar)
             const timeScale = d3.scaleLinear().domain(xDomain).range([0, chartWidth]);
             const dataScale = d3.scaleLinear().domain(yDomain).range([chartHeight, 0]);
@@ -195,7 +196,7 @@
                 .attr("stroke", "white")
                 .attr("stroke-width", 2)
                 .attr("d", d3.line()
-                    .x(function(d) { return (timeScale(d.year)) })
+                    .x(function(d) { return (timeScale(d.time)) })
                     .y(function(d) { return (dataScale(d.selectedVar)) })
                 )
             
@@ -234,22 +235,22 @@
             // function for creating a moving tooltip visible on hover on the chart
             function mousemove() {
                 console.log("moved")
-                let bisectDate = d3.bisector((d) => d.year).left;
+                let bisectDate = d3.bisector((d) => d.time).left;
                 let [mouseX, mouseY] = d3.pointer(event, this);
                 let x0 = timeScale.invert(mouseX);
                 let i = bisectDate(data, x0, 1);
                 let d0 = data[i - 1];
                 let d1 = data[i];
-                let d = x0 - d0.year > d1.year - x0 ? d1 : d0;
+                let d = x0 - d0.time > d1.time - x0 ? d1 : d0;
 
                 focus.attr("display", "block")
                 block.attr(
                 "transform",
-                `translate(${timeScale(d.year)}, ${dataScale(d.selectedVar)})`
+                `translate(${timeScale(d.time)}, ${dataScale(d.selectedVar)})`
                 );
                 dropLine.attr(
                 "transform",
-                `translate(${timeScale(d.year)}, 0)`
+                `translate(${timeScale(d.time)}, 0)`
                 );
 
                 focus.select(".tooltip").remove();
@@ -258,7 +259,7 @@
 
                 tooltip.attr(
                 "transform",
-                `translate(${timeScale(d.year)}, ${dataScale(d.selectedVar)})`
+                `translate(${timeScale(d.time)}, ${dataScale(d.selectedVar)})`
                 );
                
             }
@@ -267,7 +268,7 @@
             chartArea.raise()
 
             // add circle indicating current year
-            let selectedYearData = data.find(d => d.year === currentYear).selectedVar
+            let selectedYearData = data.find(d => d.time === currentYear).selectedVar
 
             chartArea.append("circle")
                      .attr("cx", timeScale(currentYear))
