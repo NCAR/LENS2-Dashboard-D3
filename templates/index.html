@@ -65,15 +65,16 @@
             maxZoom: 6
         }).addTo(map);
 
-        var mapdata = L.tileLayer('/tiles/{z}/{x}/{y}.png', {
-            attribution: 'Map Data',
-            maxZoom: 6,
-            opacity: 0.75
-        }).addTo(map);
+        // get selected variable and forcing type
+        var selectedVar  = document.getElementById('var_select').value
+        var selectedForcing  = document.getElementById('forcing_type').value
+
         </script>
 
         <script>
         // code for generating time series with d3.js
+
+        // chart setup
         const svg = d3.select("svg#time-series-chart");
         const width = svg.attr("width");
         const height = svg.attr("height");
@@ -81,6 +82,7 @@
         const chartWidth = width - margin.left - margin.right;
         const chartHeight = height - margin.top - margin.bottom;
 
+        // placeholder for marking a circle for the current year
         let currentYear = 2023;
 
         let annotations = svg.append("g").attr("id","annotations"); 
@@ -92,6 +94,7 @@
             chartArea.selectAll("*").remove();
             svg.selectAll(".label").remove();
 
+            // code used for unprojecting the data back into Web Mercator
             // let clickedCoords = e.latlng
 
             // let projectedCoords = L.CRS.EPSG3857.project(e.latlng)
@@ -102,8 +105,8 @@
             const cmd = "../ts/?" + 
                 "lat=" + JSON.stringify(e.latlng.lat) + "&" + 
                 "lon=" + JSON.stringify(e.latlng.lng) + "&" +
-                "var=" + document.getElementById("var_select").value + "&" +
-                "forcing_type=" + document.getElementById("forcing_type").value
+                "var=" + selectedVar + "&" +
+                "forcing_type=" + selectedForcing
             console.log(cmd)
                 $.get(cmd,
                 function(res) {
@@ -116,12 +119,12 @@
             // ensure data is of type Number
             data.forEach( d => {
                 d['year'] = Number( d['year']);
-                d['TS'] = Number(d['TS']);
+                d['TS'] = Number(d[selectedVar]);
             });
 
             // construct scales for the x-axis and y-axis based on data range
             const xDomain = d3.extent(data, d => d.year);
-            const yDomain = d3.extent(data, d => d.TS)
+            const yDomain = d3.extent(data, d => d.selectedVar)
             const timeScale = d3.scaleLinear().domain(xDomain).range([0, chartWidth]);
             const dataScale = d3.scaleLinear().domain(yDomain).range([chartHeight, 0]);
 
@@ -193,7 +196,7 @@
                 .attr("stroke-width", 2)
                 .attr("d", d3.line()
                     .x(function(d) { return (timeScale(d.year)) })
-                    .y(function(d) { return (dataScale(d.TS)) })
+                    .y(function(d) { return (dataScale(d.selectedVar)) })
                 )
             
             // construct area to detect mouseover on chart
@@ -242,7 +245,7 @@
                 focus.attr("display", "block")
                 block.attr(
                 "transform",
-                `translate(${timeScale(d.year)}, ${dataScale(d.TS)})`
+                `translate(${timeScale(d.year)}, ${dataScale(d.selectedVar)})`
                 );
                 dropLine.attr(
                 "transform",
@@ -251,11 +254,11 @@
 
                 focus.select(".tooltip").remove();
                 const tooltip = focus.append("text").attr("class", "tooltip");
-                tooltip.attr("x", 10).attr("y", 15).text(d.TS.toFixed(3));
+                tooltip.attr("x", 10).attr("y", 15).text(d.selectedVar.toFixed(3));
 
                 tooltip.attr(
                 "transform",
-                `translate(${timeScale(d.year)}, ${dataScale(d.TS)})`
+                `translate(${timeScale(d.year)}, ${dataScale(d.selectedVar)})`
                 );
                
             }
@@ -264,7 +267,7 @@
             chartArea.raise()
 
             // add circle indicating current year
-            let selectedYearData = data.find(d => d.year === currentYear).TS
+            let selectedYearData = data.find(d => d.year === currentYear).selectedVar
 
             chartArea.append("circle")
                      .attr("cx", timeScale(currentYear))
