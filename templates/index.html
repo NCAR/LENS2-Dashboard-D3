@@ -65,10 +65,6 @@
             maxZoom: 6
         }).addTo(map);
 
-        // get selected variable and forcing type
-        var selectedVar  = document.getElementById('var_select').value
-        var selectedForcing  = document.getElementById('forcing_type').value
-
         </script>
 
         <script>
@@ -105,8 +101,8 @@
             const cmd = "../ts/?" + 
                 "lat=" + JSON.stringify(e.latlng.lat) + "&" + 
                 "lon=" + JSON.stringify(e.latlng.lng) + "&" +
-                "var=" + selectedVar + "&" +
-                "forcing_type=" + selectedForcing
+                "var=" + document.getElementById('var_select').value + "&" +
+                "forcing_type=" + document.getElementById('forcing_type').value
             console.log(cmd)
                 $.get(cmd,
                 function(res) {
@@ -117,8 +113,9 @@
         });
 
         function plotData(data, clickedCoords) {
-            d3.csv(data, d3.autoType).then( (data) => {
-            // ensure data is of type Number
+            let selectedVar = document.getElementById('var_select').value
+            let selectedForcing = document.getElementById('forcing_type').value
+
             data.forEach( d => {
                 d['time'] = Number( d['time']);
                 d[selectedVar] = Number(d[selectedVar]);
@@ -278,7 +275,6 @@
                      .style("fill", "gray")
                      .style("stroke", "white")
                      .style("stroke-width", 2)
-            })
         }
         </script>
     </body>
