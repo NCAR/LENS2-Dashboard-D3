@@ -32,20 +32,22 @@
         <p>
             Coordinates: (<span id="lat-update">N/A</span>, <span id="lon-update">N/A</span>)
         </p>
-        <p>
+        <!-- <p>
             CESM2 Predicted 2023 Mean Surface Temperature: <span id="temp-update">N/A</span>
-        </p>
-        <select name="Variable" id="var_select">
-            {% for c in var_list %}
-                <option value="{{c}}">{{c}}</option>
-            {% endfor %}
-        </select>
-        <select name="Forcing Type" id="forcing_type">
-            {% for f in forcing_types %}
-                <option value="{{f}}">{{f}}</option>
-            {% endfor %}
-        </select>
-        <svg id="time-series-chart" height="350" width="350"></svg>
+        </p> -->
+        <div id="dropdown-section">
+            <select name="Variable" id="var_select">
+                {% for c in var_list %}
+                    <option value="{{c}}">{{c}}</option>
+                {% endfor %}
+            </select>
+            <select name="Forcing Type" id="forcing_type">
+                {% for f in forcing_types %}
+                    <option value="{{f}}">{{f}}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <svg id="time-series-chart" height="450" width="450"></svg>
     </div>
 
     <script>
@@ -65,8 +67,20 @@
             maxZoom: 6
         }).addTo(map);
 
+        let varSelect = document.getElementById('var_select')
+        let forcingSelect = document.getElementById('forcing_type')
+
         </script>
 
+        <script>
+        map.on('mousemove', function(e) {
+            let currentLat = e.latlng.lat
+            let currentLon = e.latlng.lng
+
+            document.getElementById('lat-update').innerHTML = (Math.abs(currentLat).toFixed(2)) + "°" + (currentLat >= 0 ? 'N' : 'S');
+            document.getElementById('lon-update').innerHTML = (Math.abs(currentLon).toFixed(2)) + "°" + (currentLon >= 0 ? 'E' : 'W');
+        });
+        </script>
         <script>
         // code for generating time series with d3.js
 
@@ -112,11 +126,9 @@
         });
 
         function plotData(data, clickedCoords) {
-            console.log(data)
-          
             data = data.data
-            let selectedVar = document.getElementById('var_select').value
-            let selectedForcing = document.getElementById('forcing_type').value
+            let selectedVar = varSelect.value
+            let selectedForcing = forcingSelect.value
 
             data.forEach( d => {
                 d['time'] = Number( d['time']);
@@ -189,10 +201,6 @@
                 .style("fill", "white")
                 .text("Year");
 
-            console.log(selectedVar)
-            
-            console.log(data.map(d => d.time))
-            console.log(data.map(d => d[selectedVar]))
             // construct line
             chartArea.append("path")
                 .datum(data)
@@ -238,7 +246,6 @@
             
             // function for creating a moving tooltip visible on hover on the chart
             function mousemove() {
-                console.log("moved")
                 let bisectDate = d3.bisector((d) => d.time).left;
                 let [mouseX, mouseY] = d3.pointer(event, this);
                 let x0 = timeScale.invert(mouseX);
@@ -280,6 +287,7 @@
                      .style("fill", "gray")
                      .style("stroke", "white")
                      .style("stroke-width", 2)
+    
         }
         </script>
     </body>

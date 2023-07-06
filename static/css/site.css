@@ -17,13 +17,13 @@ body {
 
 #map {
     height: 100vh;
-    width: 75%;
+    width: 65%;
     background-color: rgb(34, 34, 34);
 }
 
 #sidebar {
     height: 100vh;
-    width: 25%;
+    width: 35%;
     background-color: rgb(34, 34, 34);
     border-left: solid thin rgb(190, 190, 190);
     padding: 1em;
@@ -35,4 +35,8 @@ body {
 
 .gridlines .domain {
     stroke: none;
+}
+
+#time-series-chart {
+    padding: 1em;
 }
