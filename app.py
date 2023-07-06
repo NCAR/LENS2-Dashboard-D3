@@ -9,16 +9,20 @@ from dask.distributed import Client, Future
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
 
-DASK_CLUSTER = "10.12.206.63:38466"
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+DASK_CLUSTER = "localhost:8786"
 global_client = Client(DASK_CLUSTER)
 
 print('[!] Loading dataset')
-ds = xr.open_mfdataset('/glade/work/pdas47/cesm-annual/*.nc', parallel=True, chunks='auto').persist()
+ds = xr.open_mfdataset('data/*.nc', parallel=True, chunks='auto').persist()
+ds['time'] = ds.convert_calendar('standard')['time'].dt.year
 print('[!] Dataset loaded')
 
 @app.get("/", response_class=HTMLResponse)
@@ -70,7 +74,7 @@ async def get_data(
 
     
 
-@app.get("/time-series/")
+@app.get("/ts/")
 async def ts(
     lat: float = 47.6, 
     lon: float = 122.3,
@@ -83,11 +87,12 @@ async def ts(
     
     # send csv data. https://stackoverflow.com/a/61910803
     stream = io.StringIO()
-    data.to_csv(stream, index=False)
+    data = data[['time', var]]
+    data.to_json(stream, orient='records')
     
     response = StreamingResponse(
         iter([stream.getvalue()]),
-        media_type="text/csv"
+        media_type="text/json"
     )  
     del data
 
