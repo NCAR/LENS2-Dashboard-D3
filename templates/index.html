@@ -117,6 +117,7 @@
         });
 
         function plotData(data, clickedCoords) {
+            d3.csv(data, d3.autoType).then( (data) => {
             // ensure data is of type Number
             data.forEach( d => {
                 d['time'] = Number( d['time']);
@@ -277,6 +278,7 @@
                      .style("fill", "gray")
                      .style("stroke", "white")
                      .style("stroke-width", 2)
+            })
         }
         </script>
     </body>
