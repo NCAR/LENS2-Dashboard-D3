@@ -3,26 +3,37 @@ import xarray as xr
 import pandas as pd
 import io
 import sys
+import json
+from datashader.utils import lnglat_to_meters
 
 from dask.distributed import Client, Future
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="d3-CESM-tiling/templates")
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/d3-CESM-tiling/static", StaticFiles(directory="static"), name="static")
 
 DASK_CLUSTER = "localhost:8786"
 global_client = Client(DASK_CLUSTER)
 
 print('[!] Loading dataset')
-ds = xr.open_mfdataset('data/*.nc', parallel=True, chunks='auto').persist()
-ds['time'] = ds.convert_calendar('standard')['time'].dt.year
+# ds = xr.open_mfdataset('data/*.nc', parallel=True, chunks='auto').persist()
+ds = xr.open_mfdataset('d3-CESM-tiling/static/data/*.nc', parallel=True, chunks='auto').persist() # preprocessed to meters lat-lng
+
+CURRENT_VARIABLE = "TS"
+FORCING = "cmip6"
+COLORLIM = (
+        float(ds[CURRENT_VARIABLE].min()),
+        float(ds[CURRENT_VARIABLE].max())
+    )
+YEAR = 2023
+
 print('[!] Dataset loaded')
 
 @app.get("/", response_class=HTMLResponse)
@@ -37,9 +48,26 @@ async def home(request: Request):
         }
     )
 
-@app.get("/items/{id}", response_class=HTMLResponse)
-async def read_item(request: Request, id: str):
-    return templates.TemplateResponse("item.html", {"request": request, "id": id})
+@app.put("dataset/{variable}")
+def set_dataset(variable):
+    global CURRENT_VARIABLE
+    CURRENT_VARIABLE = variable
+    return ''
+
+@app.put("/dims/{year}/{forcing}")
+def set_dims(year, forcing):
+    global YEAR
+    global FORCING
+    global COLORLIM
+
+    YEAR = year
+    FORCING = forcing
+    COLORLIM = (
+        float(ds[CURRENT_VARIABLE].min()),
+        float(ds[CURRENT_VARIABLE].max())
+    )
+
+    return ''
 
 async def get_data(
         lat: float,
@@ -48,52 +76,77 @@ async def get_data(
         forcing_type: str | None = None
     ) -> pd.DataFrame:
     async with Client(DASK_CLUSTER, asynchronous=True) as client:
-        if var is None:
-            ds_subset = ds
-        else:
-            ds_subset = ds[var]
+        ds_subset = ds[CURRENT_VARIABLE].sel(forcing_type=FORCING)
         
         i_args = dict(
-            lat = lat,
-            lon = lon,
+            y = lat,
+            x = lon,
             method = 'nearest'
         )
-
-        s_args = dict()
-
-        if forcing_type is not None:
-            s_args['forcing_type'] = forcing_type
-        
-        if len(s_args) == 0:
-            data = ds_subset.sel(**i_args).to_dask_dataframe().reset_index().drop(['lat', 'lon'], axis=1)
-        else:
-            data = ds_subset.sel(**i_args).sel(**s_args).to_dask_dataframe().reset_index().drop(['lat', 'lon'], axis=1)
+        data = ds_subset.sel(**i_args).to_dask_dataframe().reset_index().drop(['x', 'y'], axis=1)
 
         future: Future = client.compute(data)
         return await future
 
+async def get_tile_data(
+        xmin: float, 
+        ymin: float, 
+        xmax: float, 
+        ymax: float
+    ) -> pd.DataFrame:
+    async with Client(DASK_CLUSTER, asynchronous=True) as client:
+        data_subset = ds[CURRENT_VARIABLE] \
+                        .sel(forcing_type=FORCING) \
+                        .sel(time=YEAR)
+        data_subset = data_subset.query(
+            x = f"x >= {xmin} and x <= {xmax}",
+            y = f"y >= {ymin} and y <= {ymax}",
+        )
+        
+        future: Future = client.compute(data_subset)
+
+        return await future
+
+@app.get("/tiles/{xmax}/{ymax}/{xmin}/{ymin}")
+async def get_tile(xmax, ymax, xmin, ymin): # TODO: potentially reorder the coordinates as xmin, ymin, xmax, ymax (more standard configuration)
+    xmin, ymin, xmax, ymax = [float(n) for n in (xmin, ymin, xmax, ymax)]
+    xmin_m, ymin_m = lnglat_to_meters(xmin, ymin)
+    xmax_m, ymax_m = lnglat_to_meters(xmax, ymax)
+
+    data_subset = await get_tile_data(xmin_m, ymin_m, xmax_m, ymax_m)
+
+    data_df = data_subset.to_dataframe().reset_index()
+
+    cornerpoints = (xmin_m, ymin_m, xmax_m, ymax_m)
+
+    json_data = {
+        'data': data_df.to_json(orient='table'),
+        'cornerpoints': cornerpoints,
+        'colorlim': COLORLIM
+    }
+
+    return Response(
+        content = json.dumps(json_data),
+        media_type="application/json"
+    )
     
 
-@app.get("/ts/")
+@app.get("/ts/{lat}/{lon}")
 async def ts(
     lat: float = 47.6, 
     lon: float = 122.3,
-    var: str | None = None,
-    forcing_type: str | None = None
     ):
     """Returns time-series data for the requested lat-lon values.
     """
-    data = await get_data(lat, lon, var, forcing_type)
+    data = await get_data(lat, lon)
     
     # send csv data. https://stackoverflow.com/a/61910803
-    stream = io.StringIO()
-    data = data[['time', var]]
-    data.to_json(stream, orient='table')
-    
-    response = StreamingResponse(
-        iter([stream.getvalue()]),
-        media_type="text/json"
-    )  
+    data = data[['time', CURRENT_VARIABLE]]
+
+    response = Response(
+        content=data.to_json(orient='table'),
+        media_type="application/json"
+    )
     del data
 
     return response
