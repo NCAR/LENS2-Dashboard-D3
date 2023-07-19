@@ -21,3 +21,6 @@ Once you have the environment activated, the following commands are required to 
 
 ### FastAPI
 `uvicorn --reload app:app`
+
+### Gunicorn
+`gunicorn -k uvicorn.workers.UvicornWorker app:app`
