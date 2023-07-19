@@ -25,7 +25,7 @@ global_client = Client(DASK_CLUSTER)
 
 print('[!] Loading dataset')
 # ds = xr.open_mfdataset('data/*.nc', parallel=True, chunks='auto').persist()
-ds = xr.open_mfdataset('d3-CESM-tiling/static/data/*.nc', parallel=True, chunks='auto').persist() # preprocessed to meters lat-lng
+ds = xr.open_mfdataset('d3-CESM-tiling/static/data/*.nc', parallel=True, chunks='auto') # preprocessed to meters lat-lng
 
 CURRENT_VARIABLE = "TS"
 FORCING = "cmip6"
@@ -49,19 +49,19 @@ async def home(request: Request):
         }
     )
 
-@app.put("dataset/{variable}")
+@app.get("/dataset/{variable}")
 def set_dataset(variable):
     global CURRENT_VARIABLE
     CURRENT_VARIABLE = variable
     return ''
 
-@app.put("/dims/{year}/{forcing}")
+@app.get("/dims/{year}/{forcing}")
 def set_dims(year, forcing):
     global YEAR
     global FORCING
     global COLORLIM
 
-    YEAR = year
+    YEAR = int(year)
     FORCING = forcing
     COLORLIM = (
         float(ds[CURRENT_VARIABLE].min()),
