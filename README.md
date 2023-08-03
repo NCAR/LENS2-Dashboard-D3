@@ -1,6 +1,6 @@
 # LENS2-Dashboard
 
-A repository for SIParCS Lens2 visualization project. 
+This repository hosts the code for a dashboard for the [LENS2](https://www.cesm.ucar.edu/community-projects/lens2) dataset using [FastAPI](https://fastapi.tiangolo.com/) and [D3.js](https://d3js.org/).
 
 To get started, clone this repository using `git clone --recurse-submodules https://github.com/NCAR/LENS2-Dashboard-D3.git`
 
